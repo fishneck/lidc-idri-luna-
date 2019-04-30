@@ -18,7 +18,7 @@ resnet_size = (224,224)
 #with open(config.path_to_error_file, 'a') as f:
 #    f.write("---Fail to load npy:" + file + '\n')
 def train_inception():
-    for i in range(6):
+    for i in range(1,6):
         for file in os.listdir(config.path_to_cls_npy + str(i) + '/'):
             try:
                 img = np.load(config.path_to_cls_npy + str(i) + '/' + file)
@@ -27,7 +27,6 @@ def train_inception():
                 img = np.stack((img,) * 3, axis=-1)
                 X.append(img.tolist())
                 Y.append(i)
-                print(np.shape(Y))
 
             except EOFError:
                 img = np.load(config.path_to_cls_npy + str(i) + '/' + file)
@@ -36,13 +35,36 @@ def train_inception():
                 img = np.stack((img,) * 3, axis=-1)
                 X.append(img.tolist())
                 Y.append(i)
-                if len(X)==935:
-                    print(config.path_to_cls_npy + str(i) + '/' + file)
         cw[i] = len(os.listdir(config.path_to_cls_npy + str(i) + '/'))
+    posi_num = len(X)
+    count = 0
+    #pick some non-nodules img for training
+    for file in os.listdir(config.path_to_cls_npy + '0/'):
+        if count < 5 * posi_num:
+            count += 1
+            try:
+                img = np.load(config.path_to_cls_npy + '0/' + file)
+                # print(img)
+                img = cv2.resize(img, inception_size, interpolation=cv2.INTER_CUBIC)
+                img = np.stack((img,) * 3, axis=-1)
+                X.append(img.tolist())
+                Y.append(0)
+
+            except EOFError:
+                img = np.load(config.path_to_cls_npy + '0/' + file)
+                print(len(X)+'fff')
+                img = cv2.resize(img, inception_size, interpolation=cv2.INTER_CUBIC)
+                img = np.stack((img,) * 3, axis=-1)
+                X.append(img.tolist())
+                Y.append(0)
+        else:
+            break
+
 
     trainX = np.array(X)
     trainY = np.array(Y)
     trainX, trainY = shuffle(trainX,trainY,random_state = 0)
+    cw[0] = len(X)-posi_num
     for i in range(6):
         cw[i] = round(len(trainY) / cw[i])
 
