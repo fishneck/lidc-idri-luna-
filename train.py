@@ -3,8 +3,9 @@ import numpy as np
 from keras.applications import vgg16,resnet50,inception_v3
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import to_categorical
-import cv2
+import cv2,random
 import matplotlib.pyplot as plt
+from sklearn.utils import shuffle
 
 cw ={}
 X = []
@@ -26,7 +27,7 @@ def train_inception():
                 img = np.stack((img,) * 3, axis=-1)
                 X.append(img.tolist())
                 Y.append(i)
-
+                print(np.shape(Y))
 
             except EOFError:
                 img = np.load(config.path_to_cls_npy + str(i) + '/' + file)
@@ -41,10 +42,15 @@ def train_inception():
 
     trainX = np.array(X)
     trainY = np.array(Y)
+    trainX, trainY = shuffle(trainX,trainY,random_state = 0)
     for i in range(6):
         cw[i] = round(len(trainY) / cw[i])
-    val_num = round(0.1 * len(trainY))
+
+    val_num = round(0.3 * len(trainY)) #plus test_num
+    test_num = round(0.2 * len(trainY))
     trainY = to_categorical(trainY, 6)
+    testX = trainX[-test_num:]
+    testY = trainY[-test_num:]
 
     print(np.shape(trainY))
     print(trainY)
@@ -55,13 +61,17 @@ def train_inception():
                         batch_size=2048,
                         epochs=5,
                         shuffle=True,
-                        validation_data=(trainX[-val_num:], trainY[-val_num:]),
+                        validation_data=(trainX[-val_num:-test_num], trainY[-val_num:-test_num]),
                         class_weight=cw,
                         )
+    predY = model.predict(testX)
+    np.save("incpt_pred.npy", predY)
+    np.save("incpt_true.npy", testY)
     model.save('inception_v3.h5')
     return History
 
 History  = train_inception()
+
 fig = plt.figure()
 plt.plot(History.history['acc'])
 plt.plot(History.history['val_acc'])
