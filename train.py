@@ -10,23 +10,34 @@ cw ={}
 X = []
 Y = []
 
-inception_size = (299,299,3)
-vgg_size = (224,224,3)
-resnet_size = (224,224,3)
+inception_size = (299,299)
+vgg_size = (224,224)
+resnet_size = (224,224)
 
+#with open(config.path_to_error_file, 'a') as f:
+#    f.write("---Fail to load npy:" + file + '\n')
 def train_inception():
     for i in range(6):
-        for file in os.listdir(config.path_to_cls_img + str(i) + '/'):
+        for file in os.listdir(config.path_to_cls_npy + str(i) + '/'):
             try:
-                #print(np.load(config.path_to_cls_img + str(i) + '/' + file))
-                img = np.stack((np.load(config.path_to_cls_img + str(i) + '/' + file),) * 3, axis=-1)
-                img = cv2.resize(img, dsize=inception_size, interpolation=cv2.INTER_CUBIC)
+                img = np.load(config.path_to_cls_npy + str(i) + '/' + file)
+                #print(img)
+                img = cv2.resize(img, inception_size, interpolation=cv2.INTER_CUBIC)
+                img = np.stack((img,) * 3, axis=-1)
                 X.append(img.tolist())
                 Y.append(i)
-            except:
-                with open(config.path_to_error_file, 'a') as f:
-                    f.write("---Fail to load npy:" + file + '\n')
-        cw[i] = len(os.listdir(config.path_to_cls_img + str(i) + '/'))
+
+
+            except EOFError:
+                img = np.load(config.path_to_cls_npy + str(i) + '/' + file)
+                print(len(X)+'fff')
+                img = cv2.resize(img, inception_size, interpolation=cv2.INTER_CUBIC)
+                img = np.stack((img,) * 3, axis=-1)
+                X.append(img.tolist())
+                Y.append(i)
+                if len(X)==935:
+                    print(config.path_to_cls_npy + str(i) + '/' + file)
+        cw[i] = len(os.listdir(config.path_to_cls_npy + str(i) + '/'))
 
     trainX = np.array(X)
     trainY = np.array(Y)
