@@ -21,10 +21,13 @@ def save_file2csv(file_dir, file_name):
     :return:
     """
     out = open(file_name, 'w')
+    out2 = open('ClassWeight.txt',"w")
     sub_dirs = file_name_path(file_dir)
-    out.writelines("filename" + "\n")
-    for index in range(len(sub_dirs)):
-        out.writelines(file_dir + "/" + sub_dirs[index] + "\n")
+    for subdir in sub_dirs:
+        out2.write(str(len(os.listdir(file_dir+'/'+subdir)))+'\n')
+        for file in os.listdir(file_dir+'/'+subdir):
+            out.writelines(file_dir + "/" + subdir+'/'+file+'\n')
 
 
-save_file2csv(config.path_to_3d_seg_img, "train_X.csv")
+
+save_file2csv(config.path_to_cls_npy, "all.txt")
