@@ -15,16 +15,27 @@ Y = []
 inception_size = (299,299)
 vgg_size = (224,224)
 resnet_size = (224,224)
-
+neg_num = 20000
+neg_count = 0
 #utils.save_file2csv(config.path_to_cls_npy, "all.csv")
 with open("all.txt",'r') as f:
-    pathlist = f.readlines()
-for i in range(len(pathlist)):
-    pathlist[i] = pathlist[i].strip('\n')
+    content = f.readlines()
+pathlist =[]
+for i in range(len(content)):
+    if content[i].split('//')[1].split('/')[0] != '0':
+        pathlist.append(content[i].strip('\n'))
+    elif neg_count < neg_num:
+        print(neg_count)
+        pathlist.append(content[i].strip('\n'))
+        neg_count += 1
+print(len(pathlist))
 with open("classweight.txt",'r') as f:
     weights = f.readlines()
 for i in range(len(weights)):
-    cw[i] = round(len(pathlist) / int(weights[i].strip('\n')))
+    if i == 0:
+        cw[i] = round(len(pathlist) / neg_count)
+    else:
+        cw[i] = round(len(pathlist) / int(weights[i].strip('\n')))
 #print(pathlist)
 print(cw)
 
@@ -37,6 +48,9 @@ def load_img_from_np(paths,size,color = 3):
             # print(img)
             img = cv2.resize(img, size, interpolation=cv2.INTER_CUBIC)
             img = np.stack((img,) * color, axis=-1)
+            if np.shape(img) != (299,299,3):
+                print(paths[i])
+                print(np.shape(img))
             imgs.append(img.tolist())
             tags.append(paths[i].split('//')[1].split('/')[0])
 
@@ -52,15 +66,16 @@ def load_img_from_np(paths,size,color = 3):
     return imgs,tags
 
 
-def get_batch(img_path, batch_size, size, preprocess ,mode, color = 3,tratio = 0.7, vratio = 0.1):
+def get_batch(img_path, batch_size, size, preprocess ,mode, color = 3,tratio = 0.8, vratio = 0.2):
     #  mode="Train"  or "Val" or "test"
-    #  tratio train-ration,vratio val-ratio, the rest is testing data
+    #  tratio train-ration,vratio val-ratio, sum=1
     while 1:
-        for i in range(0,len(img_path),batch_size):
+        for i in range(0,len(img_path)-batchsize,batch_size):
             if mode == "Train":
                 x, y = load_img_from_np(img_path[i:i + round(tratio*batch_size)], size, color)
             elif mode == "Val":
                 x, y = load_img_from_np(img_path[i + round(tratio*batch_size) : i + round((tratio+vratio)*batch_size)], size, color)
+                print(np.shape(x))
             else:
                 x, y = load_img_from_np(img_path[i + round((tratio+vratio)*batch_size) : i + batch_size], size, color)
         y = to_categorical(y, 6)
@@ -80,11 +95,11 @@ model.summary()
 batchsize = 8
 
 History = model.fit_generator(generator= get_batch(pathlist,batchsize,inception_size,preprocess="inception",mode ="Train"),
-                        steps_per_epoch=14,
-                        epochs=20,
+                        steps_per_epoch=1,
+                        epochs=1,
                         shuffle=True,
                         validation_data=get_batch(pathlist,batchsize,inception_size,preprocess="inception",mode ="Val"),
-                        validation_steps=14,
+                        validation_steps=1,
                         max_queue_size=2,
                         workers=1,
                         class_weight=cw,
@@ -176,12 +191,26 @@ def train_inception():
 #History  = train_inception()
 
 fig = plt.figure()
-plt.plot(History.history['acc'])
-plt.plot(History.history['val_acc'])
-plt.title('model accuracy')
+#print(History.history.keys())
+
+plt.plot(History.history['binary_accuracy'])
+plt.plot(History.history['val_binary_accuracy'])
+plt.title('model binary accuracy')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'val'], loc='upper left')
+fig.savefig('evaluation1.png')
+
+fig = plt.figure()
+plt.plot(History.history['categorical_accuracy'])
+plt.plot(History.history['val_categorical_accuracy'])
+plt.title('model categorical accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['train', 'val'], loc='upper left')
+fig.savefig('evaluation2.png')
+
+fig = plt.figure()
 plt.plot(History.history['loss'])
 plt.plot(History.history['val_loss'])
 plt.title('model loss')
