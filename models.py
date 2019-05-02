@@ -35,8 +35,8 @@ def nn_vgg16():
 
     for layer in final_vgg16.layers[:-4]:
         layer.trainable = False
-    #final_vgg16.summary()
-    final_vgg16.compile(optimizer='adamax', loss='categorical_crossentropy', metrics=['accuracy'])
+    final_vgg16.summary()
+    final_vgg16.compile(optimizer='adamax', loss='categorical_crossentropy', metrics=['binary_accuracy','categorical_accuracy'])
     return final_vgg16
 
 
@@ -52,10 +52,11 @@ def nn_resnet50():
     predictions = Dense(6, activation='softmax')(x)
 
     final_resnet50 = Model(inputs=model_resnet50.input, outputs=predictions)
+    final_resnet50.summary()
 
     for layer in final_resnet50.layers[:-5]:
         layer.trainable = False
-    final_resnet50.compile(optimizer='adamax', loss='categorical_crossentropy', metrics=['accuracy'])
+    final_resnet50.compile(optimizer='adamax', loss='categorical_crossentropy', metrics=['binary_accuracy','categorical_accuracy'])
     return  final_resnet50
 
 
@@ -76,9 +77,8 @@ def nn_inception_v3():
     final_inception_v3 = Model(inputs=model_inception_v3.input, outputs=predictions)
     for layer in final_inception_v3.layers[:-4]:
         layer.trainable = False
-
     sgd = SGD(lr=1e-3, decay=1e-6, momentum=0.9, nesterov=True)
-    final_inception_v3.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy'])
+    final_inception_v3.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['binary_accuracy','categorical_accuracy'])
     return final_inception_v3
 
 
